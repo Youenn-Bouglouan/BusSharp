@@ -39,3 +39,5 @@
         printfn "File '%s' saved" filename
 
     let saveData = SaveData gpsData fullFilenameWithPath
+    // prevent console from closing
+    Console.ReadLine() |> ignore
