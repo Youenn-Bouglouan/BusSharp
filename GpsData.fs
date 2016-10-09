@@ -4,6 +4,7 @@ module GpsData =
 
     open HttpUtils
     open System.IO
+    open System
 
     type TransportType =
         | Bus
@@ -31,10 +32,20 @@ module GpsData =
     let private getGpsDataAsync = PostUrlEncodedAsync mpkWroclawGpsDataUrl
     
     // Retrieve and save gps data to a file
-    let saveGpsDataAsync (filename:string) lines = async {
+    let private saveGpsDataAsync (filename:string) lines = async {
 
         use writer = new StreamWriter(new FileStream(filename, FileMode.CreateNew))
         let! gpsData = formatLines lines |> getGpsDataAsync
         writer.WriteAsync(gpsData) |> ignore
         printfn "File '%s' saved" filename
     }
+
+    /// Create an async job to save GPS data every x seconds
+    let saveEvery interval getFilename lines =
+        let rec loop time = async {
+            saveGpsDataAsync (getFilename()) lines |> Async.RunSynchronously
+            do! Async.Sleep(time * 1000)
+            return! loop time
+        }
+
+        loop interval

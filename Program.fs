@@ -4,38 +4,44 @@ module Program =
 
     open System
     open GpsData
+    open FileUtils
     open System.IO
 
-    // where to save the file
+    // Settings for GpsData module
     let savePath = "./SavedData/"
     let filename = "gpsData_"
 
-    let getFilename () =
-        let timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
-        let fullFilename = sprintf "%s%s.json" filename timestamp
-        sprintf "%s%s" savePath fullFilename
-        
+    let getFilename () = 
+        FileUtils.getFilename filename "json" true
+        |> sprintf "%s%s" savePath
+
     [<EntryPoint>]
-    let main argv =         
-        // Create the folder if it doesn't exist yet
-        if not <| Directory.Exists(savePath) then
-            printfn "Creating folder '%s'..." savePath
-            Directory.CreateDirectory(savePath) |> ignore
-            printfn "Folder '%s' created." savePath
+    let main argv =
+        
+        printfn "[%s] starting BusSharp..." (DateTime.Now.ToString("yyyy-MM dd_HH-mm-ss"))
+        
+        let exitCommand = 'q'
+        let exitInstruction = sprintf "Press '%s' to exit" (exitCommand.ToString())       
+        printfn "%s" exitInstruction
+        
+        FileUtils.createFolder savePath
 
         // Retrieve gps data for the following lines
         let lines= [
             {Name="a"; Type= Bus};
             {Name="17"; Type= Tramway}
         ]
-        
-        // Save a json file with the gps data for the lines above
-        DateTime.Now.ToString() |> printfn "before1: %s"
-        GpsData.saveGpsDataAsync (getFilename()) lines |> Async.RunSynchronously
-        DateTime.Now.ToString() |> printfn "after1: %s"
-        Threading.Thread.Sleep(5000)
-        DateTime.Now.ToString() |> printfn "before2: %s"
-        GpsData.saveGpsDataAsync (getFilename()) lines |> Async.RunSynchronously
-        DateTime.Now.ToString() |> printfn "after2: %s"
+
+        // Save GPS data every 30s
+        GpsData.saveEvery 30 getFilename lines |> Async.StartImmediate
+
+        // Do not exit until the 'q' key is pressed
+        let mutable exitApp = false
+        while not exitApp do
+            match System.Console.ReadKey().KeyChar with
+            | x when x = exitCommand -> 
+                printfn "\n[%s] exiting BusSharp..." (DateTime.Now.ToString("yyyy-MM dd_HH-mm-ss"))
+                exitApp <- true
+            | (invalidValue) -> printfn "\nInvalid command '%s'. %s" (invalidValue.ToString()) exitInstruction 
 
         0 // exit code
