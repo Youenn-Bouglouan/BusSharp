@@ -3,6 +3,7 @@
 
 # Application data
 SavedData/*
+Release*
 
 # User-specific files
 *.suo
